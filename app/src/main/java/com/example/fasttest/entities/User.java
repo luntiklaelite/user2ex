@@ -58,7 +58,7 @@ public class User {
     }
 
     public String getReqMessage(HttpURLConnection conn) throws IOException, JSONException {
-        BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+        BufferedReader r = new BufferedReader(new InputStreamReader(conn.getInputStream(),"UTF-8"));
         StringBuilder total = new StringBuilder();
         for(String line; (line = r.readLine()) != null;) {
             total.append(line).append("\n");
@@ -75,18 +75,22 @@ public class User {
         obj.put("pass", this.pass);
         obj.put("name", this.name);
         conn.getOutputStream().write(obj.toString().getBytes());
+        conn.getOutputStream().flush();
+        int code = conn.getResponseCode();
         return getReqMessage(conn);
     }
 
     public String edit() throws IOException, JSONException {
         HttpURLConnection conn = getConnection("http://188.120.248.48:20080/product/update.php","PUT");
         conn.getOutputStream().write(("ID="+this.ID+"&login="+this.login+"&pass="+this.pass+"&name="+this.name).getBytes());
+        conn.getOutputStream().flush();
         return getReqMessage(conn);
     }
 
     public String delete() throws IOException, JSONException {
         HttpURLConnection conn = getConnection("http://188.120.248.48:20080/product/delete.php","DELETE");
         conn.getOutputStream().write(("ID="+this.ID).getBytes());
+        conn.getOutputStream().flush();
         return getReqMessage(conn);
     }
 
