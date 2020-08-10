@@ -25,6 +25,8 @@ import android.widget.Button;
 import android.widget.DatePicker;
 import android.widget.EditText;
 import android.widget.ListView;
+import android.widget.Spinner;
+import android.widget.SpinnerAdapter;
 import android.widget.TextView;
 
 import com.example.fasttest.entities.User;
@@ -34,7 +36,10 @@ import org.json.JSONException;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.text.SimpleDateFormat;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.List;
 
 public class MainActivity extends AppCompatActivity {
@@ -42,6 +47,7 @@ public class MainActivity extends AppCompatActivity {
     Context context = this;
     ListView lw;
     String filter = "";
+    ArrayList<User> userArrayList = new ArrayList<User>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -70,6 +76,7 @@ public class MainActivity extends AppCompatActivity {
             }
         });
         Button button = findViewById(R.id.a_main_button_add);
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View view) {
@@ -80,14 +87,57 @@ public class MainActivity extends AppCompatActivity {
                 final TextView pass = dialog.findViewById(R.id.userlayout_pass);
                 final TextView name = dialog.findViewById(R.id.userlayout_name);
                 final TextView date = dialog.findViewById(R.id.editTextDate);
-                date.setClickable(true);
+                final Spinner spinner = dialog.findViewById(R.id.simplespinner);
+                final Spinner spinnerfilter = dialog.findViewById(R.id.filterspinner);
+                ArrayList<Character> chars = new ArrayList<Character>();
+                for(char c = 'a'; c <= 'z'; c++) {
+                    chars.add(c);
+                }
+                ArrayAdapter<Character> adapter = new ArrayAdapter<Character>(context, R.layout.support_simple_spinner_dropdown_item, chars);
+                spinnerfilter.setAdapter(adapter);
+                final ArrayList<User> tempusers = new ArrayList<User>();
+                for(User u : userArrayList)
+                {
+                    if(u.login.charAt(0) == (Character)spinnerfilter.getSelectedItem())
+                        tempusers.add(u);
+                }
+                spinner.setPrompt("ЮЗЕРЫ (НО НЕ УКАЗАН ПОЛ)");
+                spinner.setAdapter(new UserAdapter(context, R.layout.support_simple_spinner_dropdown_item, tempusers));
+
+                spinnerfilter.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+                    @Override
+                    public void onItemSelected(AdapterView<?> adapterView, View view, int i, long l) {
+                        tempusers.clear();
+                        for(User u : userArrayList)
+                        {
+                            if(u.login.charAt(0) == (Character)spinnerfilter.getSelectedItem())
+                                tempusers.add(u);
+                        }
+                        spinner.setAdapter(new UserAdapter(context, R.layout.support_simple_spinner_dropdown_item, tempusers));
+                    }
+
+                    @Override
+                    public void onNothingSelected(AdapterView<?> adapterView) {
+                        tempusers.clear();
+                        tempusers.addAll(userArrayList);
+                        spinner.setAdapter(new UserAdapter(context, R.layout.support_simple_spinner_dropdown_item, tempusers));
+                    }
+                });
+                date.setFocusable(false);
+                //date.setClickable(true);
                 date.setOnClickListener(new View.OnClickListener() {
                     @Override
                     public void onClick(View view) {
                         DatePickerDialog datePickerDialog = new DatePickerDialog(context, new DatePickerDialog.OnDateSetListener() {
                             @Override
-                            public void onDateSet(DatePicker datePicker, int i, int i1, int i2) {
-                               date.setText(datePicker.getYear() + "-" + datePicker.getMonth() + 1 + "-" + datePicker.getDayOfMonth());
+                            public void onDateSet(DatePicker datePicker, int y, int m, int d) {
+                                Calendar cal = Calendar.getInstance();
+                                cal.set(y,m,d, 0, 0, 0);
+                                SimpleDateFormat format = new SimpleDateFormat("yyyy-MM-dd");
+                                date.setText(format.format(cal.getTime()));
+                                date.setTag(cal.getTimeInMillis()/1000);
+
+
                             }
                         }, 2020, 11 ,1);
                         datePickerDialog.show();
@@ -97,7 +147,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onClick(View view) {
                         new TaskUserAdd().execute(new User(0, login.getText().toString(), pass.getText().toString(), name.getText().toString()));
-                       // new SimpleDialog("Дата рождения: " + datePicker.toString());
+                        new SimpleDialog("Дата рождения: " + date.getText() + "\nВы ощущаете себя как: " + spinner.getSelectedItem().toString());
                     }
                 });
                 dialog.show();
@@ -106,6 +156,8 @@ public class MainActivity extends AppCompatActivity {
 
         registerForContextMenu(lw);
     }
+
+
 
     @Override
     public void onCreateContextMenu(ContextMenu menu, View v, ContextMenu.ContextMenuInfo menuInfo) {
@@ -238,6 +290,7 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPostExecute(ArrayList<User> users) {
             super.onPostExecute(users);
+            userArrayList = users;
             lw.setAdapter(new UserAdapter(context, R.layout.foradapteruser, users));
         }
     }
